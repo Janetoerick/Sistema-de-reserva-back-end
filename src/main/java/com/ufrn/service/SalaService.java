@@ -1,49 +1,79 @@
 package com.ufrn.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.ufrn.model.Equipamento;
+import com.ufrn.DTO.SalaUpdatedDTO;
+import com.ufrn.exception.RegraNegocioException;
+import com.ufrn.exception.SalaNotExistException;
 import com.ufrn.model.Sala;
-import com.ufrn.repository.EquipamentoRepository;
 import com.ufrn.repository.SalaRepository;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class SalaService {
-    
-    @Autowired
-    SalaRepository salaRepository;
 
     @Autowired
-    EquipamentoRepository equipamentoRepository;
-
-    public Sala add(Sala sala){
-        return salaRepository.save(sala);
-    }
-
-    public List<Sala> getAllSalas(){
-        return salaRepository.findAll();
+    SalaRepository repository;
+    
+    public Sala save(Sala sala) {
+        if(sala.getNome() == null || sala.getLocal() == null 
+                || sala.getDescricao() == null) {
+            throw new RegraNegocioException("Falta de atributos no objeto Sala");
+        }
+        
+        if(sala.getAndar() < 0)
+            throw new RegraNegocioException("Numero do andar invalido");
+        
+        repository.save(sala);
+        return sala;
     }
     
-    public Sala getById(int id) {
-        return salaRepository.findById(id).map(sala -> {
-            return sala;
-        }).orElseThrow(() -> null);   
+    public Sala findById(Integer id) {
+        return repository
+                .findById(id)
+                .orElseThrow(() -> new SalaNotExistException());
+    }
+    
+    public List<Sala> findByLocal(String local) {
+        return repository
+                .findByLocal(local);
+    }
+
+    
+    public List<Sala> findAll(){
+        return repository.findAll();
     }
     
     public void deleteById(Integer id) {
-        Optional<Sala> temp = salaRepository.findById(id);
-        List<Equipamento> eq = equipamentoRepository.findBySala(temp.map(sala -> {
-            return sala;
-        }).orElseThrow(() -> null));
-        
-        for(Equipamento e: eq) {
-            equipamentoRepository.deleteById(e.getId());
-        }
-        salaRepository.deleteById(id);
+        repository
+        .findById(id)
+        .map(sala -> {
+            repository.delete(sala);
+            return 0;
+        })
+        .orElseThrow(() -> new SalaNotExistException());
     }
-
+    
+    public Sala update(Integer id, SalaUpdatedDTO sala) {
+        
+        Sala s = repository.findById(id).orElseThrow(() -> new SalaNotExistException());
+                
+        if(sala.getNome() == null || sala.getLocal() == null 
+                || sala.getDescricao() == null) {
+            throw new RegraNegocioException("Falta de atributos no objeto Sala");
+        }
+        
+        if(sala.getAndar() < 0)
+            throw new RegraNegocioException("Numero do andar invalido");
+        
+        s.setNome(sala.getNome());
+        s.setLocal(sala.getLocal());
+        s.setDescricao(sala.getDescricao());
+        s.setAndar(sala.getAndar());
+        
+        repository.save(s);
+        return s;
+    }
 }

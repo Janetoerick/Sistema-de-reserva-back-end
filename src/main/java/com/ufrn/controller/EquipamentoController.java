@@ -1,57 +1,62 @@
 package com.ufrn.controller;
 
+import org.springframework.http.HttpStatus;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import com.ufrn.DTO.EquipamentoDTO;
+import com.ufrn.DTO.EquipamentoReturnDTO;
 import com.ufrn.model.Equipamento;
-import com.ufrn.model.Sala;
 import com.ufrn.service.EquipamentoService;
-import com.ufrn.service.SalaService;
 
-@Controller
+@RestController
 @RequestMapping("/equipamento")
 public class EquipamentoController {
-    
+
     @Autowired
-    EquipamentoService equipamentoService;
+    private EquipamentoService service;
     
-    @Autowired
-    SalaService salaService;
-    
-    
-    @RequestMapping("/addEquipamento")
-    public String addEquipamento(@RequestParam String codigo, @RequestParam String descricao,
-            @RequestParam String sala, Model model) {
-        
-        Sala s = salaService.getById(Integer.parseInt(sala));
-        Equipamento temp = new Equipamento(Integer.parseInt(codigo), descricao, s);
-        
-        if(equipamentoService.add(temp)) {
-            model.addAttribute("equipamentos", equipamentoService.getBySala(s));
-            model.addAttribute("sala", salaService.getById(Integer.parseInt(sala)));
-            return "admin/infoSala";
-        } else {
-            model.addAttribute("equipamentos", equipamentoService.getBySala(s));
-            model.addAttribute("sala", salaService.getById(Integer.parseInt(sala)));
-            model.addAttribute("erro", "Código de equipamento já existente na sala!");
-            return "admin/infoSala";
-        }
-            
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public EquipamentoReturnDTO save( @RequestBody EquipamentoDTO eq ){
+        EquipamentoReturnDTO equipamento = service.save(eq);
+        return equipamento;
     }
     
-    @RequestMapping("/apagarEquipamento")
-    public String apagarEquipamento(@ModelAttribute("id") String id, Model model) {
-        
-        
-        Sala sala = equipamentoService.getById(Integer.parseInt(id)).getSala();
-        equipamentoService.removeById(Integer.parseInt(id));
-        model.addAttribute("equipamentos", equipamentoService.getBySala(sala));
-        model.addAttribute("sala", sala);
-        return "admin/infoSala";
-            
+    @GetMapping("{id}")
+    public EquipamentoReturnDTO getById( @PathVariable Integer id ){
+        return service.findById(id);
+    }
+    
+    @GetMapping("/sala/{id}")
+    public List<EquipamentoReturnDTO> getBySalaId( @PathVariable Integer id ){
+        return service.findBySalaIdAll(id);
+    }
+    
+    @GetMapping
+    public List<EquipamentoReturnDTO> getAll(){
+        return service.findAll();
+    }
+    
+    @PutMapping("{id}")
+    public EquipamentoReturnDTO update( @PathVariable Integer id, @RequestBody EquipamentoDTO eq ){
+        EquipamentoReturnDTO equipamento = service.update(id, eq);
+        return equipamento;
+    }
+    
+    @DeleteMapping("{id}")
+    public void removeById(@PathVariable Integer id) {
+        service.deleteById(id);
     }
 }

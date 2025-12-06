@@ -1,68 +1,169 @@
 package com.ufrn.service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.ufrn.DTO.EquipamentoDTO;
+import com.ufrn.DTO.EquipamentoReturnDTO;
+import com.ufrn.DTO.SalaDTO;
+import com.ufrn.exception.EquipamentoNotExistException;
+import com.ufrn.exception.RegraNegocioException;
+import com.ufrn.exception.SalaNotExistException;
 import com.ufrn.model.Equipamento;
-import com.ufrn.model.Reserva;
 import com.ufrn.model.Sala;
 import com.ufrn.repository.EquipamentoRepository;
-import com.ufrn.repository.ReservaRepository;
+import com.ufrn.repository.SalaRepository;
 
 @Service
 public class EquipamentoService {
-    
+
     @Autowired
-    EquipamentoRepository equipamentoRepository;
-    
+    EquipamentoRepository repository;
+
     @Autowired
-    ReservaRepository reservaRepository;
-    
-    public boolean add(Equipamento eq){
-        
-        //List<Equipamento> equipamentos = equipamentoRepository.findAll();
-        for (Equipamento equipamento : equipamentoRepository.findAll()) {
-            if(equipamento.getSala() == eq.getSala() && 
-                    equipamento.getCodigo() == eq.getCodigo()) {
-                return false;
+    SalaRepository salaRepository;
+
+    public EquipamentoReturnDTO save(EquipamentoDTO eq) {
+
+        Sala s = salaRepository.findById(eq.getSala())
+                .orElseThrow(() -> new SalaNotExistException());
+
+        if (eq.getDescricao() == null)
+            throw new RegraNegocioException("Equipamento sem campo 'descricao'");
+
+        for (Equipamento e : repository.findAll()) {
+            if (eq.getCodigo() == e.getCodigo() && eq.getSala() == e.getSala().getId()) {
+                throw new RegraNegocioException("Código de equipamento já existente na sala");
             }
         }
-        
-        equipamentoRepository.save(eq);
-        return true;
-        
-        
+
+        Equipamento e = new Equipamento();
+        e.setCodigo(eq.getCodigo());
+        e.setDescricao(eq.getDescricao());
+        e.setSala(s);
+
+        Equipamento eqm = repository.save(e);
+
+        EquipamentoReturnDTO eqReturn = new EquipamentoReturnDTO();
+        eqReturn.setId(eqm.getId());
+        eqReturn.setCodigo(eq.getCodigo());
+        eqReturn.setDescricao(eq.getDescricao());
+        SalaDTO sala = new SalaDTO();
+        sala.setNome(s.getNome());
+        sala.setLocal(s.getLocal());
+        eqReturn.setSala(sala);
+        return eqReturn;
     }
-    
-    public Equipamento getById(Integer id){
-        return equipamentoRepository.findById(id).map(eq -> {
-            return eq;
-        }).orElseThrow(() -> null);
+
+    public EquipamentoReturnDTO findById(Integer id) {
+        Equipamento e = repository
+                .findById(id)
+                .orElseThrow(() -> new EquipamentoNotExistException());
+
+        EquipamentoReturnDTO eqDTO = new EquipamentoReturnDTO();
+        eqDTO.setId(id);
+        eqDTO.setCodigo(e.getCodigo());
+        eqDTO.setDescricao(e.getDescricao());
+        SalaDTO sala = new SalaDTO();
+        sala.setNome(e.getSala().getNome());
+        sala.setLocal(e.getSala().getLocal());
+        eqDTO.setSala(sala);
+
+        return eqDTO;
     }
-    
-    public List<Equipamento> getBySala(Sala sala){
-        return equipamentoRepository.findBySala(sala);
+
+    public List<EquipamentoReturnDTO> findBySalaIdAll(Integer id) {
+
+        List<EquipamentoReturnDTO> list_return = new ArrayList<>();
+
+        List<Equipamento> eqs = repository.findAll();
+
+        for (Equipamento equipamento : eqs) {
+            if(equipamento.getSala().getId() == id) {
+                EquipamentoReturnDTO e = new EquipamentoReturnDTO();
+                e.setId(equipamento.getId());
+                e.setCodigo(equipamento.getCodigo());
+                e.setDescricao(equipamento.getDescricao());
+                SalaDTO sala = new SalaDTO();
+                sala.setNome(equipamento.getSala().getNome());
+                sala.setLocal(equipamento.getSala().getLocal());
+                e.setSala(sala);
+
+                list_return.add(e);    
+            }
+        }
+
+        return list_return;
     }
-    
-    public List<Equipamento> getAllEquipamentos(){
-        return equipamentoRepository.findAll();
+
+    public List<EquipamentoReturnDTO> findAll() {
+
+        List<EquipamentoReturnDTO> list_return = new ArrayList<>();
+
+        List<Equipamento> eqs = repository.findAll();
+
+        for (Equipamento equipamento : eqs) {
+            EquipamentoReturnDTO e = new EquipamentoReturnDTO();
+            e.setId(equipamento.getId());
+            e.setCodigo(equipamento.getCodigo());
+            e.setDescricao(equipamento.getDescricao());
+            SalaDTO sala = new SalaDTO();
+            sala.setNome(equipamento.getSala().getNome());
+            sala.setLocal(equipamento.getSala().getLocal());
+            e.setSala(sala);
+
+            list_return.add(e);
+        }
+
+        return list_return;
     }
-    
-    public void removeById(Integer id) {
-//        Optional<Equipamento> temp = equipamentoRepository.findById(id);
-//        List<Reserva> res = reservaRepository.findByIdEquipamento(temp.map(eq -> {
-//            return eq;
-//        }).orElseThrow(() -> null));
-//        
-//        for(Reserva r: res) {
-//            reservaRepository.deleteById(r.getId());
-//        }
-        
-        equipamentoRepository.deleteById(id);
+
+    public void deleteById(Integer id) {
+        repository
+                .findById(id)
+                .map(e -> {
+                    repository.delete(e);
+                    return 0;
+                })
+                .orElseThrow(() -> new EquipamentoNotExistException());
     }
-    
-    
+
+    public EquipamentoReturnDTO update(Integer id, EquipamentoDTO eq) {
+
+        Equipamento e = repository.findById(id)
+                .orElseThrow(() -> new EquipamentoNotExistException());
+
+        Sala s = salaRepository.findById(eq.getSala())
+                .orElseThrow(() -> new SalaNotExistException());
+
+        if (eq.getDescricao() == null)
+            throw new RegraNegocioException("Equipamento sem campo 'descricao'");
+
+        for (Equipamento equipamento : repository.findAll()) {
+            if (eq.getCodigo() == equipamento.getCodigo() && eq.getSala() == equipamento.getSala().getId()
+                    && equipamento.getId() != id) {
+                throw new RegraNegocioException("Código de equipamento já existente na sala");
+            }
+        }
+
+        e.setCodigo(eq.getCodigo());
+        e.setDescricao(eq.getDescricao());
+        e.setSala(s);
+
+        repository.save(e);
+
+        EquipamentoReturnDTO eqReturn = new EquipamentoReturnDTO();
+        eqReturn.setId(id);
+        eqReturn.setCodigo(eq.getCodigo());
+        eqReturn.setDescricao(eq.getDescricao());
+        SalaDTO sala = new SalaDTO();
+        sala.setNome(s.getNome());
+        sala.setLocal(s.getLocal());
+        eqReturn.setSala(sala);
+        return eqReturn;
+
+    }
 }

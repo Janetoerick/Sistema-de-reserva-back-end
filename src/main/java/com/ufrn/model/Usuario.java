@@ -11,85 +11,29 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-@Entity
-@Table(name = "usuario")
-public class Usuario {
+import com.ufrn.enums.RoleUser;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Integer id;
-	
-	@Column(length = 50, nullable = false, unique = true)
-	private String login;
-	
-	@Column(length = 50, nullable = false)
-	private String senha;
+public interface Usuario {
 
-	private String email;
-	
-	@OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY)
-	private Set<Reserva> reservas;
-	
-	private int prioridade;
-	
+    
+	public Integer getId();
 
-	public Usuario () { 
-		
-	}
+	public void setId(Integer id);
 
-	public Usuario (String login, String email, String senha) { 
-		this.login = login;
-		this.email = email;
-		this.senha = senha;
-	}
-	
-	public Integer getId() {
-		return id;
-	}
+	public String getLogin();
 
-	public void setId(Integer id) {
-		this.id = id;
-	}
+	public void setLogin(String login);
 
-	public String getLogin() {
-		return login;
-	}
+	public String getSenha();
 
-	public void setLogin(String login) {
-		this.login = login;
-	}
+	public void setSenha(String senha);
 
-	public String getSenha() {
-		return senha;
-	}
+	public String getEmail();
 
-	public void setSenha(String senha) {
-		this.senha = senha;
-	}
+	public void setEmail(String email);
 
-	public Set<Reserva> getReservas() {
-		return reservas;
-	}
+    public RoleUser getRole();
 
-	public void setReservas(Set<Reserva> reservas) {
-		this.reservas = reservas;
-	}
-
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
-	public int getPrioridade() {
-		return prioridade;
-	}
-
-	public void setPrioridade(int prioridade) {
-		this.prioridade = prioridade;
-	}
-	
+    public void setRole(RoleUser role);
 	
 }

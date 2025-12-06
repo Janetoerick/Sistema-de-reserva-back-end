@@ -16,95 +16,24 @@ import javax.persistence.ManyToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
-@Entity
-@Table(name = "reserva")
-public class Reserva {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Integer id;
-	
-	@OneToOne
-	@JoinColumn(name = "usuario_id", referencedColumnName = "id")
-	private Usuario usuario;
-	
-	private LocalDate data;
-	
-	private LocalTime horarioInicial;
-	
-	private LocalTime horarioFinal;
-	
-	@ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
-	@JoinTable(name = "reserva_equipamento",
-	joinColumns = @JoinColumn(name = "reserva_id"),
-	inverseJoinColumns = @JoinColumn(name = "equipamento_id"))
-	private Set<Equipamento> equipamentos;
-
-	
-	public Reserva () {
-		
-	}
-	
-	
-	public Reserva(Usuario usuario, LocalDate data, LocalTime horarioInicial, LocalTime horarioFinal) {
-        super();
-        this.usuario = usuario;
-        this.data = data;
-        this.horarioInicial = horarioInicial;
-        this.horarioFinal = horarioFinal;
-    }
+public interface Reserva {
 
 
+    public Integer getId();
 
-    public Integer getId() {
-		return id;
-	}
+	public void setId(Integer id);
 
-	public void setId(Integer id) {
-		this.id = id;
-	}
+    public LocalDate getData();
 
-	public Usuario getUsuario() {
-		return usuario;
-	}
+    public void setData(LocalDate data);
 
-	public void setUsuario(Usuario usuario) {
-		this.usuario = usuario;
-	}
+    public LocalTime getHorarioInicial();
 
-	public Set<Equipamento> getEquipamentos() {
-		return equipamentos;
-	}
+    public void setHorarioInicial(LocalTime horarioInicial);
 
-	public void setEquipamentos(Set<Equipamento> equipamentos) {
-		this.equipamentos = equipamentos;
-	}
+    public LocalTime getHorarioFinal();
 
-    public LocalDate getData() {
-        return data;
-    }
+    public void setHorarioFinal(LocalTime horarioFinal);
 
-    public void setData(LocalDate data) {
-        this.data = data;
-    }
-
-    public LocalTime getHorarioInicial() {
-        return horarioInicial;
-    }
-
-    public void setHorarioInicial(LocalTime horarioInicial) {
-        this.horarioInicial = horarioInicial;
-    }
-
-    public LocalTime getHorarioFinal() {
-        return horarioFinal;
-    }
-
-    public void setHorarioFinal(LocalTime horarioFinal) {
-        this.horarioFinal = horarioFinal;
-    }
-
-	
-	
 	
 }

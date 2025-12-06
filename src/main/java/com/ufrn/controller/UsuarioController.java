@@ -1,105 +1,87 @@
 package com.ufrn.controller;
 
-import java.util.ArrayList;
-
-import javax.websocket.server.PathParam;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
-import com.ufrn.model.Usuario;
-import com.ufrn.service.SalaService;
+import com.ufrn.DTO.CreateUsuarioDTO;
+import com.ufrn.DTO.CredenciaisDTO;
+import com.ufrn.DTO.PasswordAttDTO;
+import com.ufrn.DTO.TokenDTO;
+import com.ufrn.DTO.UserDTO;
+import com.ufrn.exception.SenhaInvalidaException;
+import com.ufrn.secutiry.JwtService;
 import com.ufrn.service.UsuarioService;
 
-@Controller
+import lombok.RequiredArgsConstructor;
+
+
+
+@RestController
 @RequestMapping("/usuario")
+@RequiredArgsConstructor
 public class UsuarioController {
 
     @Autowired
-    UsuarioService usuarioService;
-
+    private UsuarioService service;
+    
     @Autowired
-    SalaService salaService;
+    private JwtService jwtService;
     
-    @RequestMapping("/formUsuario")
-    public String formUsuario(){
-        return "cadastroUsuario";
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CreateUsuarioDTO save( @RequestBody CreateUsuarioDTO usuario ){
+        String senhaCriptografada = passwordEncoder.encode(usuario.getSenha());
+        usuario.setSenha(senhaCriptografada);
+        return service.save(usuario);
     }
-
-    @RequestMapping(value = "addUsuario", method = RequestMethod.POST)
-    public String addUsuario(@RequestParam String login, @RequestParam String email, @RequestParam String senha, 
-    @RequestParam String confsenha, Model model){
-        if(login.equals("") || email.equals("") || senha.equals("")){
-            model.addAttribute("login", login);
-            model.addAttribute("email", email);
-            model.addAttribute("erro", "campo erro");
-            return "cadastroUsuario";
-        } else if(!senha.equals(confsenha)){
-            model.addAttribute("login", login);
-            model.addAttribute("email", email);
-            model.addAttribute("erro", "senha erro");
-            return "cadastroUsuario";
-        } else {
-            Usuario usuario = new Usuario(login, email, senha);
-            if(usuarioService.add(usuario)){
-                return "main";
-            } else {
-                model.addAttribute("email", email);
-                model.addAttribute("erro", "login erro");
-                return "cadastroUsuario";
-            }
-        }
-    }
-
- 
-    @RequestMapping(value = "loginUsuario")
-    public String loginUsuario(@RequestParam String login, @RequestParam String senha, Model model){
-
-        Usuario temp = usuarioService.verifyUser(login, senha);
-        if(temp != null && temp.getId() > -1){
-            if(temp.getPrioridade() == 0){
-                model.addAttribute("id", temp.getId());
-                model.addAttribute("salas", salaService.getAllSalas());
-                return "user/salas";
-            } else {
-                model.addAttribute("id", temp.getId());
-                
-                model.addAttribute("salas", salaService.getAllSalas());
-                return "admin/salasAdmin";
-            }
-        } else {
-            model.addAttribute("erro", "erro login");
-            return "main";
+    
+    @PostMapping("/auth")
+    public TokenDTO autenticar(@RequestBody CredenciaisDTO credenciais){
+        try{
+            
+            UserDetails usuarioAutenticado = service.autenticar(credenciais);
+     
+            String token = jwtService.gerarToken(credenciais);
+            
+            TokenDTO return_token = new TokenDTO();
+            return_token.setLogin(credenciais.getLogin());
+            return_token.setToken(token);
+            return_token.setTypeUser(service.typeUser(credenciais.getLogin()));
+            return return_token;
+        } catch (UsernameNotFoundException | SenhaInvalidaException e ){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
     }
     
-    @RequestMapping("/perfilUsuario/{id}")
-    public String perfilUsuario(@PathVariable("id") String id, Model model) {
-        model.addAttribute("usuario", usuarioService.findById(Integer.parseInt(id)));
-        return "user/perfilUser";
-    }
-    
-    @RequestMapping("/trocarSenha")
-    public String trocarSenha(@RequestParam String senhaAtual, @RequestParam String novaSenha,
-            @RequestParam String confSenha, @RequestParam String id, Model model) {
-        Usuario temp = usuarioService.findById(Integer.parseInt(id));
-        model.addAttribute("usuario", temp);
-        if(temp.getSenha().equals(senhaAtual)) {
-            if(novaSenha.equals(confSenha)) {
-                model.addAttribute("erro", "not");
-                return "user/perfilUser";
-            } else
-                model.addAttribute("erro", "Senhas não são iguais!");
-        } else
-            model.addAttribute("erro", "Senha atual incorreta!");
+    @PutMapping("/password")
+    public PasswordAttDTO attSenha(@RequestBody PasswordAttDTO passworddto) {
+        passworddto.setSenha_atual(passwordEncoder.encode(passworddto.getSenha_atual()));
+        passworddto.setNova_senha(passwordEncoder.encode(passworddto.getNova_senha()));
+        passworddto.setConfirmarSenha(passwordEncoder.encode(passworddto.getConfirmarSenha()));
         
-        return "user/perfilUser";
+        return service.attPassword(passworddto);
     }
+    
+    @GetMapping("{type}")
+    public List<UserDTO> findUsuario(@PathVariable String type) {
+    	return service.findAll(type);
+    }
+    
 }

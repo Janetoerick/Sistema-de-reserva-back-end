@@ -14,6 +14,8 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "equipamento")
 public class Equipamento {
@@ -30,10 +32,11 @@ public class Equipamento {
 	@JoinTable(name = "reserva_equipamento",
 	joinColumns = @JoinColumn(name = "equipamento_id"),
 	inverseJoinColumns = @JoinColumn(name = "reserva_id"))
-	private Set<Reserva> reservas;
+	private Set<ReservaIndividual> reservas;
 	
 	@ManyToOne
 	@JoinColumn(name = "sala_id")
+	@JsonIgnore
 	private Sala sala;
 	
 	
@@ -66,11 +69,11 @@ public class Equipamento {
 		this.descricao = descricao;
 	}
 
-	public Set<Reserva> getReservas() {
+	public Set<ReservaIndividual> getReservas() {
 		return reservas;
 	}
 
-	public void setReservas(Set<Reserva> reservas) {
+	public void setReservas(Set<ReservaIndividual> reservas) {
 		this.reservas = reservas;
 	}
 
